@@ -26,7 +26,7 @@ public class buy : MonoBehaviour
                 {
                     if (ishealth)
                     {
-                        playerValues.maxHealth = playerValues.maxHealth + 2;
+                        playerValues.maxHealth = playerValues.maxHealth + 1;
                         playerValues.coins = playerValues.coins - 2;
                     }
                     else

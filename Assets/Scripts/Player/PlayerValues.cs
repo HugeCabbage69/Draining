@@ -6,7 +6,7 @@ public class PlayerValues : MonoBehaviour
     public float maxHealth = 100f;
     public int coins = 0;
 
-    public float regenSpeed = 5f;
+    public float regenSpeed = 0.5f;
     public bool canRegen = true;
 
     void Update()

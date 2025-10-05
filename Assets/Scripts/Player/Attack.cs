@@ -9,12 +9,21 @@ public class Attack : MonoBehaviour
     public float attackCooldown = 0.5f;
     public float nextAttackTime = 0f;
 
+    public PlayerValues playerValues;
+
+    public bool donealr;
+
     void Update()
     {
         if (Input.GetMouseButtonDown(0) && Time.time >= nextAttackTime)
         {
             PlayRandomAttack();
             nextAttackTime = Time.time + attackCooldown;
+            if (!donealr)
+            {
+                playerValues.health = playerValues.health - 1;
+                donealr = true;
+            }
         }
 
         if (Time.time >= nextAttackTime)
@@ -24,6 +33,7 @@ public class Attack : MonoBehaviour
         else
         {
             movementscript.speed = 2;
+            donealr = false;
         }
     }
 

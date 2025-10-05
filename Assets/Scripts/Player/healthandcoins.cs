@@ -18,7 +18,7 @@ public class healthandcoins : MonoBehaviour
         }
         else
         {
-            fillImage.fillAmount = Mathf.Clamp01(playerValues.health / 100f);
+            fillImage.fillAmount = Mathf.Clamp01(playerValues.health / playerValues.maxHealth);
         }
     }
 }
