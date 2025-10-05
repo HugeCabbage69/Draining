@@ -7,9 +7,10 @@ public class DasherEnemy : MonoBehaviour
     public float dashSpeed = 20f;
     public float waitTime = 2f;
 
+    public AudioSource dashSound;
+
     Rigidbody rb;
     Transform player;
-
     bool isDashing = false;
 
     void Start()
@@ -41,6 +42,15 @@ public class DasherEnemy : MonoBehaviour
     {
         isDashing = true;
 
+        if (dashSound != null)
+        {
+            dashSound.Play();
+        }
+        else
+        {
+            Debug.Log("no dash sound on " + gameObject.name);
+        }
+
         Vector3 start = transform.position;
         Vector3 dir = (player.position - start).normalized;
         Vector3 target = start + dir * dashDistance;
@@ -64,6 +74,12 @@ public class DasherEnemy : MonoBehaviour
         }
 
         rb.MovePosition(target);
+
+        if (dashSound != null && dashSound.isPlaying)
+        {
+            dashSound.Stop();
+        }
+
         isDashing = false;
     }
 
@@ -71,6 +87,11 @@ public class DasherEnemy : MonoBehaviour
     {
         if (isDashing)
         {
+            if (dashSound != null && dashSound.isPlaying)
+            {
+                dashSound.Stop();
+            }
+
             StopAllCoroutines();
             StartCoroutine(DashLoop());
             isDashing = false;

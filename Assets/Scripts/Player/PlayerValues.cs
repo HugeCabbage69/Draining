@@ -9,14 +9,32 @@ public class PlayerValues : MonoBehaviour
     public float regenSpeed = 0.5f;
     public bool canRegen = true;
 
+    public float damagePerSecond = 10f;
+    public LayerMask enemyLayer;
+
     void Update()
     {
-        if (canRegen && health < 100f)
+        // regen stuff
+        if (canRegen && health < maxHealth)
         {
             health += regenSpeed * Time.deltaTime;
         }
 
         health = Mathf.Clamp(health, 0f, maxHealth);
         coins = Mathf.Clamp(coins, 0, 4);
+    }
+
+    void OnTriggerStay(Collider other)
+    {
+        if (other.CompareTag("Enemy") || ((1 << other.gameObject.layer) & enemyLayer) != 0)
+        {
+            health -= damagePerSecond * Time.deltaTime;
+
+            if (health <= 0)
+            {
+                Debug.Log("player died");
+                health = 0;
+            }
+        }
     }
 }

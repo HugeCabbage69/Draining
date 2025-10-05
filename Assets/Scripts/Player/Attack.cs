@@ -9,6 +9,8 @@ public class Attack : MonoBehaviour
     public float attackCooldown = 0.5f;
     public float nextAttackTime = 0f;
 
+    public AudioSource woosh;
+
     public PlayerValues playerValues;
 
     public bool donealr;
@@ -23,6 +25,7 @@ public class Attack : MonoBehaviour
             {
                 playerValues.health = playerValues.health - 1;
                 donealr = true;
+                woosh.Play();
             }
         }
 
