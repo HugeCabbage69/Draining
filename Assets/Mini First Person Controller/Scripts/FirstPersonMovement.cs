@@ -17,59 +17,89 @@ public class FirstPersonMovement : MonoBehaviour
     public GameObject renderer1;
     public GameObject pbox;
 
-    // 🎵 Add these:
     public AudioSource idleMusic;
     public AudioSource moveMusic;
+    public AudioSource splashing;
+
     public float fadeSpeed = 2f;
 
-    private bool flip = false;
-    private bool isDashing = false;
-    private bool canDash = true;
-    private Coroutine regenRoutine;
-    private Vector2 moveInput;
-    private bool isWalkingPrev = false;
+    bool flip = false;
+    bool isDashing = false;
+    bool canDash = true;
+    Coroutine regenRoutine;
+    Vector2 moveInput;
+    bool isWalkingPrev = false;
+
+    float splashTimer = 0f;
+    float splashPitchChangeSpeed = 0.05f;
+    float randPitch = 1f;
 
     void Start()
     {
         idleMusic.volume = 0.4f;
         moveMusic.volume = 0f;
+        splashing.volume = 0f;
+        splashing.pitch = 1.8f;
     }
 
     void FixedUpdate()
     {
-        float inputX = Input.GetAxis("Horizontal");
-        float inputY = Input.GetAxis("Vertical");
-        moveInput = new Vector2(inputX, inputY);
+        float x = Input.GetAxis("Horizontal");
+        float y = Input.GetAxis("Vertical");
+        moveInput = new Vector2(x, y);
 
-        bool isWalking = moveInput.magnitude > 0.01f;
+        bool walking = false;
+        if (moveInput.magnitude > 0.01f) walking = true;
 
-        if (isWalking != isWalkingPrev)
+        if (walking != isWalkingPrev)
         {
-            if (isWalking)
+            if (walking)
             {
                 StartCoroutine(FadeAudio(moveMusic, 0.4f));
+                StartCoroutine(FadeAudio(splashing, 0.12f));
                 StartCoroutine(FadeAudio(idleMusic, 0f));
+                if (!splashing.isPlaying) splashing.Play();
             }
             else
             {
                 StartCoroutine(FadeAudio(moveMusic, 0f));
+                StartCoroutine(FadeAudio(splashing, 0f));
                 StartCoroutine(FadeAudio(idleMusic, 0.4f));
             }
-            isWalkingPrev = isWalking;
+            isWalkingPrev = walking;
         }
 
-        if (moveInput.x < -0.01f) flip = false;
-        else if (moveInput.x > 0.01f) flip = true;
+        if (walking)
+        {
+            splashTimer += Time.deltaTime;
+            if (splashTimer >= splashPitchChangeSpeed)
+            {
+                splashTimer = 0f;
+                randPitch = Random.Range(0.5f, 2f);
+                splashing.pitch = randPitch;
+            }
+        }
 
-        Vector3 localScale = renderer1.transform.localScale;
-        localScale.x = Mathf.Abs(localScale.x) * (flip ? -1 : 1);
-        renderer1.transform.localScale = localScale;
+        if (moveInput.x < -0.01f)
+        {
+            flip = false;
+        }
+        else if (moveInput.x > 0.01f)
+        {
+            flip = true;
+        }
+
+        Vector3 sc = renderer1.transform.localScale;
+        float newX = Mathf.Abs(sc.x);
+        if (flip) newX = -newX;
+        sc.x = newX;
+        renderer1.transform.localScale = sc;
 
         if (pbox != null)
         {
-            Vector3 pboxPos = pbox.transform.localPosition;
-            pboxPos.x = flip ? 0.95f : -0.95f;
-            pbox.transform.localPosition = pboxPos;
+            Vector3 pos = pbox.transform.localPosition;
+            if (flip) pos.x = 0.95f; else pos.x = -0.95f;
+            pbox.transform.localPosition = pos;
         }
 
         if (!isDashing)
@@ -79,52 +109,56 @@ public class FirstPersonMovement : MonoBehaviour
             rigidbody.linearVelocity = rotatedMove;
         }
 
-        controling.SetBool("Walking", isWalking);
+        controling.SetBool("Walking", walking);
 
-        if (Input.GetKeyDown(dashKey) && canDash)
+        if (Input.GetKeyDown(dashKey))
         {
-            TryDash();
+            if (canDash)
+            {
+                TryDash();
+            }
         }
     }
 
-    IEnumerator FadeAudio(AudioSource source, float targetVolume)
+    IEnumerator FadeAudio(AudioSource src, float tVol)
     {
-        if (source == null) yield break;
-        float startVolume = source.volume;
-
-        while (!Mathf.Approximately(source.volume, targetVolume))
+        if (src == null) yield break;
+        float sVol = src.volume;
+        while (!Mathf.Approximately(src.volume, tVol))
         {
-            source.volume = Mathf.MoveTowards(source.volume, targetVolume, fadeSpeed * Time.deltaTime);
+            src.volume = Mathf.MoveTowards(src.volume, tVol, fadeSpeed * Time.deltaTime);
             yield return null;
         }
     }
 
     void TryDash()
     {
-        if (playerValues == null || playerValues.coins <= 0) return;
+        int c = 0;
+        c++;
+        if (playerValues == null) return;
+        if (playerValues.coins <= 0) return;
 
-        playerValues.coins--;
+        playerValues.coins = playerValues.coins - 1;
         StartCoroutine(PerformDash());
         StartCoroutine(DashCooldownRoutine());
-
-        if (regenRoutine != null)
-            StopCoroutine(regenRoutine);
+        if (regenRoutine != null) StopCoroutine(regenRoutine);
         regenRoutine = StartCoroutine(RegenCoinAfterDelay());
     }
 
     IEnumerator PerformDash()
     {
         isDashing = true;
-        Vector3 dashDir = new Vector3(moveInput.x, 0f, moveInput.y).normalized;
-        if (dashDir.magnitude < 0.1f) dashDir = transform.forward;
+        Vector3 d = new Vector3(moveInput.x, 0, moveInput.y);
+        if (d.magnitude < 0.1f) d = transform.forward;
+        d.Normalize();
 
-        float dashTime = dashDistance / dashSpeed;
-        float elapsed = 0f;
+        float t = dashDistance / dashSpeed;
+        float el = 0f;
 
-        while (elapsed < dashTime)
+        while (el < t)
         {
-            rigidbody.linearVelocity = dashDir * dashSpeed;
-            elapsed += Time.deltaTime;
+            rigidbody.linearVelocity = d * dashSpeed;
+            el += Time.deltaTime;
             yield return null;
         }
 
@@ -142,10 +176,10 @@ public class FirstPersonMovement : MonoBehaviour
     IEnumerator RegenCoinAfterDelay()
     {
         yield return new WaitForSeconds(coinRegenDelay);
-
         if (!isDashing && playerValues.coins < 4)
         {
-            playerValues.coins++;
+            int add = 1;
+            playerValues.coins = playerValues.coins + add;
         }
     }
 }
