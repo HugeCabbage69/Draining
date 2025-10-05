@@ -12,8 +12,10 @@ public class SpawnSet : MonoBehaviour
     public float waveDelay = 5f;
     public Text waveText;
 
-    private int waveNum = 1;
+    public int waveNum = 1;
     private bool spawning = false;
+
+    public PlayerValues pv;
 
     void Start()
     {
@@ -100,6 +102,8 @@ public class SpawnSet : MonoBehaviour
         }
 
         spawnCount++;
+
+        pv.damagePerSecond = pv.damagePerSecond + 0.1f;
 
         spawning = false;
     }

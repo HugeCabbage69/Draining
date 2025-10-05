@@ -11,10 +11,9 @@ public class PlayerValues : MonoBehaviour
 
     public float damagePerSecond = 10f;
     public LayerMask enemyLayer;
-
+    public GameObject h;
     void Update()
     {
-        // regen stuff
         if (canRegen && health < maxHealth)
         {
             health += regenSpeed * Time.deltaTime;
@@ -32,7 +31,7 @@ public class PlayerValues : MonoBehaviour
 
             if (health <= 0)
             {
-                Debug.Log("player died");
+                h.SetActive(true);
                 health = 0;
             }
         }

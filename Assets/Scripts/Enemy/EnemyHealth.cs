@@ -13,17 +13,31 @@ public class EnemyHealth : MonoBehaviour
     private string tempString = "unused";
     private float lastHealth = 0f;
 
+    public AudioSource coinsound;
+
+    GameObject playerObj;
+    PlayerValues playerScript;
+
     void Start()
     {
         float startHealth = maxHealth;
         currentHealth = startHealth;
         lastHealth = currentHealth;
+
+        playerObj = GameObject.FindGameObjectWithTag("Player");
+        if (playerObj != null)
+        {
+            playerScript = playerObj.GetComponent<PlayerValues>();
+        }
+        else
+        {
+            Debug.Log("dead");
+        }
     }
 
     void Update()
     {
-        float clampedHealth = Mathf.Clamp(currentHealth, 0f, maxHealth);
-        currentHealth = clampedHealth;
+        currentHealth = Mathf.Clamp(currentHealth, 0f, maxHealth);
 
         if (currentHealth < lastHealth)
         {
@@ -33,7 +47,7 @@ public class EnemyHealth : MonoBehaviour
             }
             else
             {
-                Debug.Log("L" + gameObject.name);
+                Debug.Log("enemy hurt sound missing on " + gameObject.name);
             }
         }
 
@@ -45,7 +59,18 @@ public class EnemyHealth : MonoBehaviour
             }
             else
             {
-                Debug.Log("L" + gameObject.name);
+                Debug.Log("enemy died " + gameObject.name);
+            }
+
+            if (playerScript != null)
+            {
+                int rng = Random.Range(0, 15);
+                if (rng == 0)
+                {
+                    coinsound.Play();
+                    playerScript.coins += 1;
+                    Debug.Log("+1");
+                }
             }
 
             Destroy(gameObject, 0.1f);
