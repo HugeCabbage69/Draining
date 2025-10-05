@@ -1,5 +1,5 @@
-using UnityEngine;
 using System.Collections;
+using UnityEngine;
 
 public class DasherEnemy : MonoBehaviour
 {
@@ -7,63 +7,73 @@ public class DasherEnemy : MonoBehaviour
     public float dashSpeed = 20f;
     public float waitTime = 2f;
 
-    private Rigidbody rb;
-    private Transform player;
+    Rigidbody rb;
+    Transform player;
 
-    private Vector3 tempVec = Vector3.zero;
-    private float tempFloat = 0f;
-    private int tempInt = 0;
-    private bool tempBool = false;
+    bool isDashing = false;
 
-    private void Start()
+    void Start()
     {
         rb = GetComponent<Rigidbody>();
-
-        GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
-        if (playerObj != null)
+        GameObject p = GameObject.FindGameObjectWithTag("Player");
+        if (p != null)
         {
-            player = playerObj.transform;
-            tempInt++;
+            player = p.transform;
         }
 
-        StartCoroutine(DashRoutine());
-        tempFloat = waitTime * 0.1f;
+        StartCoroutine(DashLoop());
     }
 
-    IEnumerator DashRoutine()
+    IEnumerator DashLoop()
     {
         while (true)
         {
-            float waitTimer = 0f;
-            while (waitTimer < waitTime)
+            yield return new WaitForSeconds(waitTime);
+
+            if (player != null && !isDashing)
             {
-                waitTimer += Time.deltaTime;
-                yield return null;
+                StartCoroutine(Dash());
+            }
+        }
+    }
+
+    IEnumerator Dash()
+    {
+        isDashing = true;
+
+        Vector3 start = transform.position;
+        Vector3 dir = (player.position - start).normalized;
+        Vector3 target = start + dir * dashDistance;
+
+        RaycastHit hit;
+        if (Physics.Raycast(start, dir, out hit, dashDistance))
+        {
+            target = hit.point;
+        }
+
+        while ((target - transform.position).sqrMagnitude > 0.05f)
+        {
+            Vector3 move = dir * dashSpeed * Time.fixedDeltaTime;
+            if (move.sqrMagnitude > (target - transform.position).sqrMagnitude)
+            {
+                move = target - transform.position;
             }
 
-            if (player != null)
-            {
-                Vector3 startPos = transform.position;
-                Vector3 dirVec = player.position - startPos;
-                Vector3 direction = dirVec.normalized;
-                Vector3 targetPos = startPos + direction * dashDistance;
-                tempVec = direction;
+            rb.MovePosition(transform.position + move);
+            yield return new WaitForFixedUpdate();
+        }
 
-                while ((targetPos - transform.position).sqrMagnitude > 0.01f)
-                {
-                    Vector3 moveStep = direction * dashSpeed * Time.fixedDeltaTime;
+        rb.MovePosition(target);
+        isDashing = false;
+    }
 
-                    if (moveStep.sqrMagnitude > (targetPos - transform.position).sqrMagnitude)
-                        moveStep = targetPos - transform.position;
-
-                    rb.MovePosition(transform.position + moveStep);
-                    tempInt++;
-                    yield return new WaitForFixedUpdate();
-                }
-
-                rb.MovePosition(targetPos);
-                tempBool = true;
-            }
+    void OnCollisionEnter(Collision col)
+    {
+        if (isDashing)
+        {
+            StopAllCoroutines();
+            StartCoroutine(DashLoop());
+            isDashing = false;
         }
     }
 }
