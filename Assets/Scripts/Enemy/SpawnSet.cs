@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class SpawnSet : MonoBehaviour
 {
@@ -9,37 +10,62 @@ public class SpawnSet : MonoBehaviour
     public int spawnCount = 3;
     public float warningTime = 2f;
     public float waveDelay = 5f;
+    public Text waveText;
 
     private int waveNum = 1;
     private bool spawning = false;
 
     void Start()
     {
-        StartCoroutine(SpawnWaves());
+        if (waveText != null)
+        {
+            waveText.text = "Wave " + waveNum;
+        }
+
+        StartCoroutine(SpawnWave());
     }
 
-    IEnumerator SpawnWaves()
+    void Update()
     {
-        while (true)
+        if (!spawning)
         {
-            if (GameObject.FindObjectsOfType<EnemyHealth>().Length > 0 || GameObject.FindGameObjectsWithTag("Enemy").Length > 0)
+            int enemyCount = GameObject.FindObjectsOfType<EnemyHealth>().Length + GameObject.FindGameObjectsWithTag("Enemy").Length;
+            if (enemyCount == 0)
             {
-                yield return null;
+                StartCoroutine(StartNextWave());
             }
-            else
+        }
+    }
+
+    IEnumerator StartNextWave()
+    {
+        spawning = true;
+
+        float timer = waveDelay;
+        while (timer > 0)
+        {
+            if (waveText != null)
             {
-                if (!spawning)
-                {
-                    spawning = true;
-                    StartCoroutine(SpawnWave());
-                }
+                waveText.text = "New Wave Starting In " + Mathf.Ceil(timer);
             }
+            timer -= Time.deltaTime;
             yield return null;
         }
+
+        waveNum++;
+        if (waveText != null)
+        {
+            waveText.text = "Wave " + waveNum;
+        }
+
+        StartCoroutine(SpawnWave());
+        yield return null;
     }
 
     IEnumerator SpawnWave()
     {
+        spawning = true;
+
         List<Vector3> spawnPositions = new List<Vector3>();
 
         for (int i = 0; i < spawnCount; i++)
@@ -61,7 +87,6 @@ public class SpawnSet : MonoBehaviour
                 int r = Random.Range(0, enemyPrefabs.Count);
                 Vector3 spawnAbove = spawnPositions[i] + new Vector3(0, 9f, 0);
                 GameObject enemy = Instantiate(enemyPrefabs[r], spawnAbove, Quaternion.identity);
-
                 enemy.tag = "Enemy";
 
                 EnemyHealth eh = enemy.GetComponent<EnemyHealth>();
@@ -74,11 +99,7 @@ public class SpawnSet : MonoBehaviour
             }
         }
 
-        waveNum++;
-
         spawnCount++;
-
-        yield return new WaitForSeconds(waveDelay);
 
         spawning = false;
     }

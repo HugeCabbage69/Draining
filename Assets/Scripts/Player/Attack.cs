@@ -32,7 +32,7 @@ public class Attack : MonoBehaviour
         }
         else
         {
-            movementscript.speed = 2;
+            movementscript.speed = 8;
             donealr = false;
         }
     }
