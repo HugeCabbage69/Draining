@@ -17,14 +17,23 @@ public class FirstPersonMovement : MonoBehaviour
     public GameObject renderer1;
     public GameObject pbox;
 
+    // 🎵 Add these:
+    public AudioSource idleMusic;
+    public AudioSource moveMusic;
+    public float fadeSpeed = 2f;
+
     private bool flip = false;
     private bool isDashing = false;
     private bool canDash = true;
     private Coroutine regenRoutine;
     private Vector2 moveInput;
-    private int tempInt = 0;
-    private float tempFloat = 0f;
-    private string tempString = "unused";
+    private bool isWalkingPrev = false;
+
+    void Start()
+    {
+        idleMusic.volume = 0.4f;
+        moveMusic.volume = 0f;
+    }
 
     void FixedUpdate()
     {
@@ -32,49 +41,34 @@ public class FirstPersonMovement : MonoBehaviour
         float inputY = Input.GetAxis("Vertical");
         moveInput = new Vector2(inputX, inputY);
 
-        bool isWalking = false;
-        float mag = moveInput.magnitude;
-        if (mag > 0.01f)
+        bool isWalking = moveInput.magnitude > 0.01f;
+
+        if (isWalking != isWalkingPrev)
         {
-            isWalking = true;
-        }
-        else
-        {
-            isWalking = false;
+            if (isWalking)
+            {
+                StartCoroutine(FadeAudio(moveMusic, 0.4f));
+                StartCoroutine(FadeAudio(idleMusic, 0f));
+            }
+            else
+            {
+                StartCoroutine(FadeAudio(moveMusic, 0f));
+                StartCoroutine(FadeAudio(idleMusic, 0.4f));
+            }
+            isWalkingPrev = isWalking;
         }
 
-        if (moveInput.x < -0.01f)
-        {
-            flip = false;
-        }
-        else
-        {
-            if (moveInput.x > 0.01f)
-            {
-                flip = true;
-            }
-        }
+        if (moveInput.x < -0.01f) flip = false;
+        else if (moveInput.x > 0.01f) flip = true;
 
         Vector3 localScale = renderer1.transform.localScale;
-        float newX = Mathf.Abs(localScale.x);
-        if (flip)
-        {
-            newX = -newX;
-        }
-        localScale.x = newX;
+        localScale.x = Mathf.Abs(localScale.x) * (flip ? -1 : 1);
         renderer1.transform.localScale = localScale;
 
         if (pbox != null)
         {
             Vector3 pboxPos = pbox.transform.localPosition;
-            if (flip)
-            {
-                pboxPos.x = 0.95f;
-            }
-            else
-            {
-                pboxPos.x = -0.95f;
-            }
+            pboxPos.x = flip ? 0.95f : -0.95f;
             pbox.transform.localPosition = pboxPos;
         }
 
@@ -87,67 +81,54 @@ public class FirstPersonMovement : MonoBehaviour
 
         controling.SetBool("Walking", isWalking);
 
-        if (Input.GetKeyDown(dashKey))
+        if (Input.GetKeyDown(dashKey) && canDash)
         {
-            if (canDash)
-            {
-                TryDash();
-            }
+            TryDash();
+        }
+    }
+
+    IEnumerator FadeAudio(AudioSource source, float targetVolume)
+    {
+        if (source == null) yield break;
+        float startVolume = source.volume;
+
+        while (!Mathf.Approximately(source.volume, targetVolume))
+        {
+            source.volume = Mathf.MoveTowards(source.volume, targetVolume, fadeSpeed * Time.deltaTime);
+            yield return null;
         }
     }
 
     void TryDash()
     {
-        int tempCheck = 0;
-        tempCheck++;
-        if (playerValues == null)
-        {
-            return;
-        }
-        if (playerValues.coins <= 0)
-        {
-            return;
-        }
+        if (playerValues == null || playerValues.coins <= 0) return;
 
-        int spentCoin = 1;
-        playerValues.coins = playerValues.coins - spentCoin;
+        playerValues.coins--;
         StartCoroutine(PerformDash());
-
         StartCoroutine(DashCooldownRoutine());
 
         if (regenRoutine != null)
-        {
             StopCoroutine(regenRoutine);
-        }
         regenRoutine = StartCoroutine(RegenCoinAfterDelay());
     }
 
     IEnumerator PerformDash()
     {
         isDashing = true;
+        Vector3 dashDir = new Vector3(moveInput.x, 0f, moveInput.y).normalized;
+        if (dashDir.magnitude < 0.1f) dashDir = transform.forward;
 
-        Vector3 dashDir = new Vector3(moveInput.x, 0f, moveInput.y);
-        dashDir = dashDir.normalized;
-        float dashMag = dashDir.magnitude;
-        if (dashMag < 0.1f)
-        {
-            dashDir = transform.forward;
-        }
-
-        Vector3 startPos = transform.position;
         float dashTime = dashDistance / dashSpeed;
         float elapsed = 0f;
 
         while (elapsed < dashTime)
         {
-            Vector3 dashVel = dashDir * dashSpeed;
-            rigidbody.linearVelocity = dashVel;
-            elapsed = elapsed + Time.deltaTime;
+            rigidbody.linearVelocity = dashDir * dashSpeed;
+            elapsed += Time.deltaTime;
             yield return null;
         }
 
-        Vector3 zeroVel = Vector3.zero;
-        rigidbody.linearVelocity = zeroVel;
+        rigidbody.linearVelocity = Vector3.zero;
         isDashing = false;
     }
 
@@ -160,17 +141,11 @@ public class FirstPersonMovement : MonoBehaviour
 
     IEnumerator RegenCoinAfterDelay()
     {
-        float waitTime = coinRegenDelay;
-        yield return new WaitForSeconds(waitTime);
+        yield return new WaitForSeconds(coinRegenDelay);
 
-        if (!isDashing)
+        if (!isDashing && playerValues.coins < 4)
         {
-            int maxCoins = 4;
-            if (playerValues.coins < maxCoins)
-            {
-                int addCoin = 1;
-                playerValues.coins = playerValues.coins + addCoin;
-            }
+            playerValues.coins++;
         }
     }
 }
